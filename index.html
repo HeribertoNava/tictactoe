@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Gato</title>
+    <style type="text/css">body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-gap: 10px;
+    margin: 20px auto;
+}
+
+.cell {
+    width: 100px;
+    height: 100px;
+    background-color: #ddd;
+    border: 1px solid #999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    cursor: pointer;
+}
+
+.cell:hover {
+    background-color: #ccc;
+}
+
+#reset-button {
+    padding: 10px 20px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#reset-button:hover {
+    background-color: #555;
+}
+
+.scoreboard {
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.scoreboard p {
+    margin: 5px 0;
+}
+
+#winner-message {
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Juego de Gato</h1>
+        <div id="board" class="board">
+            <div class="cell" id="cell-0"></div>
+            <div class="cell" id="cell-1"></div>
+            <div class="cell" id="cell-2"></div>
+            <div class="cell" id="cell-3"></div>
+            <div class="cell" id="cell-4"></div>
+            <div class="cell" id="cell-5"></div>
+            <div class="cell" id="cell-6"></div>
+            <div class="cell" id="cell-7"></div>
+            <div class="cell" id="cell-8"></div>
+        </div>
+        <button id="reset-button">Reiniciar Juego</button>
+        <p id="message"></p>
+        <div class="scoreboard">
+            <p>¡Juego nuevo!</p>
+            <p>Turno de: <span id="current-player">X</span></p>
+            <p>Tiempo transcurrido: <span id="timer">0</span> segundos</p>
+            <p id="winner-message"></p>
+            <ul id="scores"></ul> <!-- Lista de mejores tiempos -->
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+    const cells = document.querySelectorAll('.cell');
+    const resetButton = document.getElementById('reset-button');
+    const message = document.getElementById('message');
+    const scoresList = document.getElementById('scores');
+
+    let currentPlayer = 'X';
+    let gameActive = true;
+    let board = ['', '', '', '', '', '', '', '', ''];
+    let startTime;
+    let endTime;
+
+    const winningCombinations = [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        [0, 4, 8],
+        [2, 4, 6]
+    ];
+
+    const checkWinner = () => {
+        for (let combination of winningCombinations) {
+            const [a, b, c] = combination;
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                gameActive = false;
+                highlightWinningCells(combination);
+                endTime = new Date();
+                const elapsedTime = (endTime - startTime) / 1000; // Tiempo transcurrido en segundos
+                const winner = board[a] === 'X' ? 'Jugador' : 'Máquina';
+                message.innerText = `${winner} ha ganado en ${elapsedTime} segundos.`;
+                addScore(winner, elapsedTime);
+                return;
+            }
+        }
+        if (!board.includes('')) {
+            gameActive = false;
+            message.innerText = '¡El juego ha terminado en empate!';
+        }
+    };
+
+    const highlightWinningCells = (combination) => {
+        for (let index of combination) {
+            cells[index].classList.add('win');
+        }
+    };
+
+    const handleCellClick = (index) => {
+        if (gameActive && board[index] === '') {
+            board[index] = currentPlayer;
+            cells[index].innerText = currentPlayer;
+            cells[index].classList.add(currentPlayer);
+            checkWinner();
+            if (gameActive) {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                if (currentPlayer === 'O') {
+                    setTimeout(() => {
+                        playComputerMove();
+                    }, 1000); // Pequeño retardo para simular la "pensada" de la máquina
+                }
+            }
+        }
+    };
+
+    const playComputerMove = () => {
+        let emptyCells = [];
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === '') {
+                emptyCells.push(i);
+            }
+        }
+        const randomIndex = Math.floor(Math.random() * emptyCells.length);
+        const randomCellIndex = emptyCells[randomIndex];
+        board[randomCellIndex] = 'O';
+        cells[randomCellIndex].innerText = 'O';
+        cells[randomCellIndex].classList.add('O');
+        checkWinner();
+        currentPlayer = 'X';
+    };
+
+    const resetGame = () => {
+        board = ['', '', '', '', '', '', '', '', ''];
+        currentPlayer = 'X';
+        gameActive = true;
+        cells.forEach(cell => {
+            cell.innerText = '';
+            cell.classList.remove('X', 'O', 'win');
+        });
+        message.innerText = '';
+        startTime = new Date();
+    };
+
+    const addScore = (winner, time) => {
+        const scoreItem = document.createElement('li');
+        scoreItem.innerText = `${winner} ganó en ${time} segundos.`;
+        scoresList.appendChild(scoreItem);
+        // Recoger puntuaciones
+        const scores = JSON.parse(localStorage.getItem('scores')) || [];
+        scores.push({ winner, time });
+        // Ordenar por tiempo ascendente
+        scores.sort((a, b) => a.time - b.time);
+        // Limitar a 10 registros
+        const topScores = scores.slice(0, 10);
+        // Guardar en almacenamiento local
+        localStorage.setItem('scores', JSON.stringify(topScores));
+        // Actualizar la lista de puntuaciones
+        updateScoreHistory(topScores);
+    };
+
+    const updateScoreHistory = (scores) => {
+        scoresList.innerHTML = '';
+        scores.forEach(score => {
+            const scoreItem = document.createElement('li');
+            scoreItem.textContent = `${score.winner} ganó en ${score.time} segundos.`;
+            scoresList.appendChild(scoreItem);
+        });
+    };
+
+    // Función para cargar las puntuaciones almacenadas al inicio
+    const loadScoresFromLocalStorage = () => {
+        const scores = JSON.parse(localStorage.getItem('scores')) || [];
+        updateScoreHistory(scores);
+    };
+
+    cells.forEach((cell, index) => {
+        cell.addEventListener('click', () => handleCellClick(index));
+    });
+
+    resetButton.addEventListener('click', resetGame);
+
+    loadScoresFromLocalStorage(); // Cargar puntuaciones almacenadas al inicio
+    resetGame(); // Iniciar el tiempo al cargar la página
+});
+    </script>
+</body>
+</html>
